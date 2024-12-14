@@ -2,15 +2,32 @@ import requests
 from bs4 import BeautifulSoup
 import psycopg2
 from psycopg2 import sql
+import logging
+from concurrent.futures import ThreadPoolExecutor
+import configparser
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Чтение конфигурационного файла
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+db_config = config['Database']
+dbname = db_config['dbname']
+user = db_config['user']
+password = db_config['password']
+host = db_config['host']
+port = db_config['port']
 
 # Функция для создания базы данных и таблицы
 def create_database():
     conn = psycopg2.connect(
-        dbname='your_db_name',
-        user='your_db_user',
-        password='your_db_password',
-        host='your_db_host',
-        port='your_db_port'
+        dbname=dbname,
+        user=user,
+        password=password,
+        host=host,
+        port=port
     )
     cursor = conn.cursor()
     cursor.execute('''
@@ -26,11 +43,11 @@ def create_database():
 # Функция для сохранения данных в базу данных
 def save_to_database(title, content):
     conn = psycopg2.connect(
-        dbname='your_db_name',
-        user='your_db_user',
-        password='your_db_password',
-        host='your_db_host',
-        port='your_db_port'
+        dbname=dbname,
+        user=user,
+        password=password,
+        host=host,
+        port=port
     )
     cursor = conn.cursor()
     cursor.execute('INSERT INTO articles (title, content) VALUES (%s, %s)', (title, content))
@@ -40,19 +57,21 @@ def save_to_database(title, content):
 # Функция для парсинга сайта и извлечения данных
 def parse_website(url):
     try:
-        response = requests.get(url)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+        response = requests.get(url, headers=headers)
         response.raise_for_status()  # Проверка на ошибки HTTP
         soup = BeautifulSoup(response.content, 'html.parser')
         title = soup.title.string if soup.title else 'No title'
         content = soup.get_text(separator='\n')  # Добавление разделителя для улучшения читаемости
         save_to_database(title, content)
-        print(f"Сохранено: {title}")
+        logging.info(f"Сохранено: {title}")
     except requests.RequestException as e:
-        print(f"Ошибка при загрузке страницы {url}: {e}")
+        logging.error(f"Ошибка при загрузке страницы {url}: {e}")
 
 # Основная функция
 def main():
-    print("Запуск программы WebScraper...")
+    logging.info("Запуск программы WebScraper...")
     create_database()
 
     # Чтение URL-адресов из файла
@@ -62,9 +81,11 @@ def main():
     # Удаление символов новой строки
     urls = [url.strip() for url in urls]
 
-    for url in urls:
-        parse_website(url)
-    print("Парсинг завершен.")
+    # Использование ThreadPoolExecutor для параллельного выполнения
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        executor.map(parse_website, urls)
+
+    logging.info("Парсинг завершен.")
 
 if __name__ == '__main__':
     main()
