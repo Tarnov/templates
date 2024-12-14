@@ -54,10 +54,14 @@ def parse_website(url):
 def main():
     print("Запуск программы WebScraper...")
     create_database()
-    urls = [
-        'https://example.com',
-        'https://another-example.com'
-    ]
+
+    # Чтение URL-адресов из файла
+    with open('urls.txt', 'r') as file:
+        urls = file.readlines()
+
+    # Удаление символов новой строки
+    urls = [url.strip() for url in urls]
+
     for url in urls:
         parse_website(url)
     print("Парсинг завершен.")
