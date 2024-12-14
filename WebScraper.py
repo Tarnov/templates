@@ -26,18 +26,20 @@ def save_to_database(title, content):
 
 # Функция для парсинга сайта и извлечения данных
 def parse_website(url):
-    response = requests.get(url)
-    if response.status_code == 200:
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Проверка на ошибки HTTP
         soup = BeautifulSoup(response.content, 'html.parser')
         title = soup.title.string if soup.title else 'No title'
-        content = soup.get_text()
+        content = soup.get_text(separator='\n')  # Добавление разделителя для улучшения читаемости
         save_to_database(title, content)
         print(f"Сохранено: {title}")
-    else:
-        print(f"Ошибка при загрузке страницы: {url}")
+    except requests.RequestException as e:
+        print(f"Ошибка при загрузке страницы {url}: {e}")
 
 # Основная функция
 def main():
+    print("Запуск программы WebScraper...")
     create_database()
     urls = [
         'https://example.com',
@@ -45,6 +47,8 @@ def main():
     ]
     for url in urls:
         parse_website(url)
+    print("Парсинг завершен.")
 
 if __name__ == '__main__':
     main()
+
