@@ -1,14 +1,21 @@
 import requests
 from bs4 import BeautifulSoup
-import sqlite3
+import psycopg2
+from psycopg2 import sql
 
 # Функция для создания базы данных и таблицы
 def create_database():
-    conn = sqlite3.connect('knowledge_base.db')
+    conn = psycopg2.connect(
+        dbname='your_db_name',
+        user='your_db_user',
+        password='your_db_password',
+        host='your_db_host',
+        port='your_db_port'
+    )
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS articles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             title TEXT,
             content TEXT
         )
@@ -18,9 +25,15 @@ def create_database():
 
 # Функция для сохранения данных в базу данных
 def save_to_database(title, content):
-    conn = sqlite3.connect('knowledge_base.db')
+    conn = psycopg2.connect(
+        dbname='your_db_name',
+        user='your_db_user',
+        password='your_db_password',
+        host='your_db_host',
+        port='your_db_port'
+    )
     cursor = conn.cursor()
-    cursor.execute('INSERT INTO articles (title, content) VALUES (?, ?)', (title, content))
+    cursor.execute('INSERT INTO articles (title, content) VALUES (%s, %s)', (title, content))
     conn.commit()
     conn.close()
 
@@ -51,4 +64,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
